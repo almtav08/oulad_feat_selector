@@ -61,10 +61,17 @@ if __name__ == '__main__':
     inverse_map_func = np.vectorize(lambda x: inverse_map[x])
     
     courses = *map(str, Path("course_stages_data").rglob("*.csv")),
-    results = []
+    cols = ['course', 'features', 'accuracy', 'f1', 'precision', 'recall', 'confusion_matrix']
+    if Path('./feature_selection.csv').exists():
+        results_df = pd.read_csv('./feature_selection.csv', escapechar='\\')
+    else:
+        results_df = pd.DataFrame(columns=cols)
     for course in tqdm(courses, desc='Courses', unit=' course'):
+        course_name = course.split('\\')[-1]
+        if course_name in results_df['course'].values:
+            continue
         course_data = pd.read_csv(course)
-        result = vote_features(course, course_data, target_map, labels, inverse_map_func)
-        results.append(result)
-    results_df = pd.DataFrame(results, columns=['course', 'features', 'accuracy', 'f1', 'precision', 'recall', 'confusion_matrix'])
-    results_df.to_csv('./feature_selection.csv', index=False)
+        result = vote_features(course_name, course_data, target_map, labels, inverse_map_func)
+        tmp_df = pd.DataFrame([result], columns=cols)
+        results_df = pd.concat([results_df, tmp_df], ignore_index=True)
+        results_df.to_csv('./feature_selection.csv', index=False)
