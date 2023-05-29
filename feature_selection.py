@@ -70,8 +70,6 @@ if __name__ == '__main__':
     remain_courses = [course for course in courses if course not in completed_courses]
     for course in tqdm(remain_courses, desc='Courses', unit=' course'):
         print(f"Processing {course}")
-        if course in results_df['course'].values:
-            continue
         course_data = pd.read_csv(course)
         result = vote_features(course, course_data, target_map, labels, inverse_map_func)
         tmp_df = pd.DataFrame([result], columns=cols)

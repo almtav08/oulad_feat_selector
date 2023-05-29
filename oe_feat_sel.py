@@ -21,10 +21,10 @@ if __name__ == '__main__':
         results_df = pd.read_csv('./oe_feature_selection.csv', escapechar='\\')
     else:
         results_df = pd.DataFrame(columns=cols)
-    for course in tqdm(courses, desc='Courses', unit=' course'):
-        course_name = course.split('\\')[-1]
-        if course_name in results_df['course'].values:
-            continue
+        completed_courses = results_df['course'].values
+    remain_courses = [course for course in courses if course not in completed_courses]
+    for course in tqdm(remain_courses, desc='Courses', unit=' course'):
+        print(f"Processing {course}")
         df = pd.read_csv(course)
         data = df.copy()
         data_x = data.drop(['final_result', 'id_student'], axis=1)
@@ -46,7 +46,7 @@ if __name__ == '__main__':
 
         model.fit(data_x_train_sampled, data_y_train_sampled)
         y_pred = model.predict(data_x_test)
-        result = course_name, features_idx, accuracy_score(data_y_test, y_pred), f1_score(data_y_test, y_pred, average='weighted'), \
+        result = course, features_idx, accuracy_score(data_y_test, y_pred), f1_score(data_y_test, y_pred, average='weighted'), \
         precision_score(data_y_test, y_pred, average='weighted'), recall_score(data_y_test, y_pred, average='weighted'), \
         confusion_matrix(inverse_map_func(data_y_test), inverse_map_func(y_pred), labels=labels)
 
