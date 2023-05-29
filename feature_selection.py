@@ -63,15 +63,17 @@ if __name__ == '__main__':
     courses = *map(str, Path("course_stages_data").rglob("*.csv")),
     cols = ['course', 'features', 'accuracy', 'f1', 'precision', 'recall', 'confusion_matrix']
     if Path('./feature_selection.csv').exists():
-        results_df = pd.read_csv('./feature_selection.csv', escapechar='\\')
+        results_df = pd.read_csv('./feature_selection.csv')
     else:
         results_df = pd.DataFrame(columns=cols)
-    for course in tqdm(courses, desc='Courses', unit=' course'):
-        course_name = course.split('\\')[-1]
-        if course_name in results_df['course'].values:
+    completed_courses = results_df['course'].values
+    remain_courses = [course for course in courses if course not in completed_courses]
+    for course in tqdm(remain_courses, desc='Courses', unit=' course'):
+        print(f"Processing {course}")
+        if course in results_df['course'].values:
             continue
         course_data = pd.read_csv(course)
-        result = vote_features(course_name, course_data, target_map, labels, inverse_map_func)
+        result = vote_features(course, course_data, target_map, labels, inverse_map_func)
         tmp_df = pd.DataFrame([result], columns=cols)
         results_df = pd.concat([results_df, tmp_df], ignore_index=True)
         results_df.to_csv('./feature_selection.csv', index=False)
