@@ -1,15 +1,34 @@
 import numpy as np
 import pandas as pd
 from pathlib import Path
+from sklearn.base import clone
 from sklearn.model_selection import train_test_split
 from sklearn.feature_selection import SelectKBest, f_classif, mutual_info_classif, RFECV, SequentialFeatureSelector, SelectFromModel
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, precision_score, recall_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
+from scipy.stats import kruskal
 from collections import defaultdict
 from imblearn.over_sampling import SVMSMOTE
 from tqdm import tqdm
+
+KMIC = {'score_func': 'mutual_info_classif', 'k': 20}
+KKW = {'score_func': 'kruskal_wallis', 'k': 20}
+RFECVE = {'estimator': SVC(random_state=0, probability=True, kernel='linear', C=0.9, degree=1), 'cv': 10, 'min_features_to_select': 20, 'step': 0.05, 'n_jobs': 6}
+SFS = {'estimator': SVC(random_state=0, probability=True, kernel='linear', C=0.9, degree=1), 'cv': 10, 'n_features_to_select': 20, 'n_jobs': 6}
+SFM = {'estimator': RandomForestClassifier(random_state=0, n_estimators=70, max_depth=17), 'max_features': 20}
+SELECTORS = {'KMIC': 'SelectKBest', 'KKW': 'SelectKBest', 'RFECVE': 'RFECV', 'SFS': 'SequentialFeatureSelector', 'SFM': 'SelectFromModel'}
+
+def kruskal_wallis(X, y):
+    k_values = []
+    p_values = []
+    for feature in X.T:
+        stat, p = kruskal(*[feature[y == cls] for cls in np.unique(y)])
+        k_values.append(stat)
+        p_values.append(p)
+    return np.array(k_values), np.array(p_values)
+
 
 def vote_features(course: str, course_data: pd.DataFrame, target_map: dict, labels: list, inverse_map_func: np.vectorize):
     data = course_data.copy()
@@ -18,25 +37,19 @@ def vote_features(course: str, course_data: pd.DataFrame, target_map: dict, labe
     scaler = StandardScaler()
     data_x_scaled = scaler.fit_transform(data_x)
 
-    kbm = SelectKBest(score_func=mutual_info_classif, k=20)
-    kbm.fit(data_x_scaled, data_y)
-    kbf = SelectKBest(score_func=f_classif, k=20)
-    kbf.fit(data_x_scaled, data_y)
-    rfecv_es = SVC(random_state=0, probability=True, kernel='linear', C=0.9, degree=1)
-    rfecv = RFECV(rfecv_es, cv=10, min_features_to_select=20, step=0.05, n_jobs=6)
-    rfecv.fit(data_x_scaled, data_y)
-    sfs_es = SVC(random_state=0, probability=True, kernel='linear', C=0.9, degree=1)
-    sfs = SequentialFeatureSelector(sfs_es, cv=10, n_features_to_select=20, n_jobs=6)
-    sfs.fit(data_x_scaled, data_y)
-    sfm_es = RandomForestClassifier(random_state=0, n_estimators=70, max_depth=17)
-    sfm = SelectFromModel(sfm_es, max_features=20)
-    sfm.fit(data_x_scaled, data_y)
-
     features_dict = defaultdict(int)
-    all_features = np.concatenate((kbm.get_feature_names_out(), kbf.get_feature_names_out(), \
-        rfecv.get_feature_names_out(), sfs.get_feature_names_out(), sfm.get_feature_names_out()))
-    for feat in all_features:
-        features_dict[feat] += 1
+    for sel in SELECTORS:
+        conf = eval(sel)
+        if sel == 'KMIC':
+            sel = SelectKBest(score_func=eval(conf['score_func']), k=conf['k'])
+        elif sel == 'KKW':
+            sel = SelectKBest(score_func=kruskal_wallis, k=conf['k'])
+        elif sel == 'RFECVE' or sel == 'SFS' or sel == 'SFM':
+            conf['estimator'] = clone(conf['estimator'])
+            sel = eval(f'{SELECTORS[sel]}(**{conf})')
+        sel.fit(data_x_scaled, data_y)
+        for feat in sel.get_feature_names_out():
+            features_dict[feat] += 1
 
     features = sorted(features_dict, key=lambda x: -features_dict[x])[:20]
     features_idx = [int(feat[1:]) for feat in features]
