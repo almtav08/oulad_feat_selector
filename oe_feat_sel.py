@@ -21,7 +21,7 @@ if __name__ == '__main__':
         results_df = pd.read_csv('./oe_feature_selection.csv', escapechar='\\')
     else:
         results_df = pd.DataFrame(columns=cols)
-        completed_courses = results_df['course'].values
+    completed_courses = results_df['course'].values
     remain_courses = [course for course in courses if course not in completed_courses]
     for course in tqdm(remain_courses, desc='Courses', unit=' course'):
         print(f"Processing {course}")

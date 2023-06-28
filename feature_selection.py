@@ -15,8 +15,8 @@ from tqdm import tqdm
 
 KMIC = {'score_func': 'mutual_info_classif', 'k': 20}
 KKW = {'score_func': 'kruskal_wallis', 'k': 20}
-RFECVE = {'estimator': SVC(random_state=0, probability=True, kernel='linear', C=0.9, degree=1), 'cv': 10, 'min_features_to_select': 20, 'step': 0.05, 'n_jobs': 6}
-SFS = {'estimator': SVC(random_state=0, probability=True, kernel='linear', C=0.9, degree=1), 'cv': 10, 'n_features_to_select': 20, 'n_jobs': 6}
+RFECVE = {'estimator': SVC(random_state=0, probability=True, kernel='linear', C=0.9, degree=1), 'cv': 10, 'min_features_to_select': 20, 'step': 0.05, 'n_jobs': 12}
+SFS = {'estimator': SVC(random_state=0, probability=True, kernel='linear', C=0.9, degree=1), 'cv': 10, 'n_features_to_select': 20, 'n_jobs': 12}
 SFM = {'estimator': RandomForestClassifier(random_state=0, n_estimators=70, max_depth=17), 'max_features': 20}
 SELECTORS = {'KMIC': 'SelectKBest', 'KKW': 'SelectKBest', 'RFECVE': 'RFECV', 'SFS': 'SequentialFeatureSelector', 'SFM': 'SelectFromModel'}
 

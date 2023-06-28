@@ -43,7 +43,7 @@ class Genome():
             for _ in range(int(self.number_of_features) - int(np.sum(self.get_support()))):
                 idxs = self.get_unsupported_idxs(mutation_index)
                 idx = idxs[random.choice(range(idxs.shape[0]))]
-                self.get_support()[idx] = 0
+                self.get_support()[idx] = 1
         if (int(np.sum(self.get_support())) > int(self.number_of_features)):
             for _ in range(int(np.sum(self.get_support())) - int(self.number_of_features)):
                 idxs = self.get_supported_idxs(mutation_index)
