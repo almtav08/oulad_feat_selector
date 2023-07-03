@@ -80,7 +80,7 @@ if __name__ == '__main__':
     else:
         results_df = pd.DataFrame(columns=cols)
     completed_courses = results_df['course'].values
-    remain_courses = [course for course in courses if course not in completed_courses]
+    remain_courses = [course for course in courses if (course not in completed_courses and 'BBB' not in course)]
     for course in tqdm(remain_courses, desc='Courses', unit=' course'):
         print(f"Processing {course}")
         course_data = pd.read_csv(course)
