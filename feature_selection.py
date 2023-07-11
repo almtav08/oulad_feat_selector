@@ -12,11 +12,12 @@ from scipy.stats import kruskal
 from collections import defaultdict
 from imblearn.over_sampling import SVMSMOTE
 from tqdm import tqdm
+from func_timeout import func_timeout
 
 KMIC = {'score_func': 'mutual_info_classif', 'k': 20}
 KKW = {'score_func': 'kruskal_wallis', 'k': 20}
-RFECVE = {'estimator': SVC(random_state=0, probability=True, kernel='linear', C=0.9, degree=1), 'cv': 10, 'min_features_to_select': 20, 'step': 0.05, 'n_jobs': 12}
-SFS = {'estimator': SVC(random_state=0, probability=True, kernel='linear', C=0.9, degree=1), 'cv': 10, 'n_features_to_select': 20, 'n_jobs': 12}
+RFECVE = {'estimator': SVC(random_state=0, probability=True, kernel='linear', C=0.9, degree=1), 'cv': 10, 'min_features_to_select': 20, 'step': 0.05, 'n_jobs': 14}
+SFS = {'estimator': SVC(random_state=0, probability=True, kernel='linear', C=0.9, degree=1), 'cv': 10, 'n_features_to_select': 20, 'n_jobs': 14}
 SFM = {'estimator': RandomForestClassifier(random_state=0, n_estimators=70, max_depth=17), 'max_features': 20}
 SELECTORS = {'KMIC': 'SelectKBest', 'KKW': 'SelectKBest', 'RFECVE': 'RFECV', 'SFS': 'SequentialFeatureSelector', 'SFM': 'SelectFromModel'}
 
@@ -41,15 +42,20 @@ def vote_features(course: str, course_data: pd.DataFrame, target_map: dict, labe
     for sel in SELECTORS:
         conf = eval(sel)
         if sel == 'KMIC':
-            sel = SelectKBest(score_func=eval(conf['score_func']), k=conf['k'])
+            selector = SelectKBest(score_func=eval(conf['score_func']), k=conf['k'])
         elif sel == 'KKW':
-            sel = SelectKBest(score_func=kruskal_wallis, k=conf['k'])
+            selector = SelectKBest(score_func=kruskal_wallis, k=conf['k'])
         elif sel == 'RFECVE' or sel == 'SFS' or sel == 'SFM':
             conf['estimator'] = clone(conf['estimator'])
-            sel = eval(f'{SELECTORS[sel]}(**{conf})')
-        sel.fit(data_x_scaled, data_y)
-        for feat in sel.get_feature_names_out():
-            features_dict[feat] += 1
+            selector = eval(f'{SELECTORS[sel]}(**{conf})')
+        try:
+            func_timeout(2500, selector.fit, args=(data_x_scaled, data_y))
+        except:
+            pass
+        if (sel in ['KMIC', 'KKW', 'SFM']) or (sel in ['RFECVE', 'SFS']  and hasattr(selector, 'support_')):
+            print(f'{sel} - {selector.get_support().sum()}')
+            for feat in selector.get_feature_names_out():
+                features_dict[feat] += 1
 
     features = sorted(features_dict, key=lambda x: -features_dict[x])[:20]
     features_idx = [int(feat[1:]) for feat in features]
@@ -80,11 +86,11 @@ if __name__ == '__main__':
     else:
         results_df = pd.DataFrame(columns=cols)
     completed_courses = results_df['course'].values
-    remain_courses = [course for course in courses if (course not in completed_courses and 'BBB' not in course)]
+    remain_courses = [course for course in courses if course not in completed_courses]
     for course in tqdm(remain_courses, desc='Courses', unit=' course'):
         print(f"Processing {course}")
         course_data = pd.read_csv(course)
         result = vote_features(course, course_data, target_map, labels, inverse_map_func)
-        tmp_df = pd.DataFrame([result], columns=cols)
-        results_df = pd.concat([results_df, tmp_df], ignore_index=True)
-        results_df.to_csv('./feature_selection.csv', index=False)
+        # tmp_df = pd.DataFrame([result], columns=cols)
+        # results_df = pd.concat([results_df, tmp_df], ignore_index=True)
+        # results_df.to_csv('./feature_selection.csv', index=False)
