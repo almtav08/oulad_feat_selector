@@ -49,11 +49,10 @@ def vote_features(course: str, course_data: pd.DataFrame, target_map: dict, labe
             conf['estimator'] = clone(conf['estimator'])
             selector = eval(f'{SELECTORS[sel]}(**{conf})')
         try:
-            func_timeout(2500, selector.fit, args=(data_x_scaled, data_y))
+            func_timeout(700, selector.fit, args=(data_x_scaled, data_y))
         except:
             pass
         if (sel in ['KMIC', 'KKW', 'SFM']) or (sel in ['RFECVE', 'SFS']  and hasattr(selector, 'support_')):
-            print(f'{sel} - {selector.get_support().sum()}')
             for feat in selector.get_feature_names_out():
                 features_dict[feat] += 1
 
@@ -91,6 +90,6 @@ if __name__ == '__main__':
         print(f"Processing {course}")
         course_data = pd.read_csv(course)
         result = vote_features(course, course_data, target_map, labels, inverse_map_func)
-        # tmp_df = pd.DataFrame([result], columns=cols)
-        # results_df = pd.concat([results_df, tmp_df], ignore_index=True)
-        # results_df.to_csv('./feature_selection.csv', index=False)
+        tmp_df = pd.DataFrame([result], columns=cols)
+        results_df = pd.concat([results_df, tmp_df], ignore_index=True)
+        results_df.to_csv('./feature_selection.csv', index=False)
